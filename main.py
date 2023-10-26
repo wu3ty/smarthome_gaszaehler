@@ -15,7 +15,7 @@ import paho.mqtt.client as mqttClient
 import time
 import os.path
 import json
-from datetime import datetime
+import datetime
 import logging
 
 logging.basicConfig(filename="gas.log",
@@ -28,6 +28,7 @@ logging.info("Starting Gas MQTT Reader...")
 
 Connected = False #global variable for the state of the connection
   
+timestamp_lastmessage = datetime.datetime.now()
 
 # create storage files
 if not os.path.exists(data_file):
@@ -46,13 +47,22 @@ def on_connect(client, userdata, flags, rc):
     else:
   
         logging.error("Starting Gas MQTT Reader...")
-  
+
 def on_message(client, userdata, message):
-    timestamp = datetime.now()
+    global timestamp_lastmessage
+
+    timestamp = datetime.datetime.now()
+
     if message and message.payload:
         byte_str = message.payload.decode('utf-8').replace("'", '"')
         json_payload = json.loads(byte_str)
-        logging.debug(f"{timestamp} Received payload: {json_payload}")
+        if timestamp < timestamp_lastmessage + datetime.timedelta(seconds=2):
+            logging.debug(f"Skipping payload: {json_payload}")
+            timestamp_lastmessage = timestamp
+            return
+        else:
+            timestamp_lastmessage = timestamp
+            logging.info(f"Processing payload: {json_payload}")
 
         # update gas counter 
         current_value = None
