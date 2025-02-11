@@ -17,7 +17,8 @@ import logging
 import os.path
 from datetime import datetime
 
-logging.basicConfig(filename="gas.log",
+LOG_FILE = "gas.log"
+logging.basicConfig(filename=LOG_FILE,
                     filemode='a',
                     format='%(asctime)s,%(msecs)03d %(name)s %(levelname)s %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -172,30 +173,42 @@ def read_current_reading():
 
 app = Flask(__name__)
 
-@app.route('/gas/digit/<digit>')
-def gas_digit(digit):
+@app.route('/gas/pictures/digit/<digit>')
+def gas_pictures_digit(digit):
     filename = f"current_digit_{digit}.png"
     if os.path.isfile(filename):
         return send_file(filename, mimetype='image/png')
 
     return abort(404)
 
-@app.route('/gas/picture')
-def gas_picture():
+@app.route('/gas/pictures/processed')
+def gas_pictures_processed():
     if os.path.isfile(CURRENT_FILTERED_FILE):
         return send_file(CURRENT_FILTERED_FILE, mimetype='image/png')
 
     return abort(404)
 
-@app.route('/gas/raw')
-def gas_raw():
+@app.route('/gas/pictures/raw')
+def gas_pictures_raw():
     if os.path.isfile(CURRENT_CAPTURE_FILE):
         return send_file(CURRENT_CAPTURE_FILE, mimetype='image/png')
 
     return abort(404)
 
-@app.route('/gas/current')
-def gas_current():
+@app.route('/gas/reading/previous')
+def gas_reading_previous():
+    
+    # perform validity check; open last file and check delta
+    if os.path.isfile(LAST_READING_FILENAME):
+        with open(LAST_READING_FILENAME) as f:
+            d = json.load(f)
+
+            return json.dumps(d)
+            
+    return abort(404)
+
+@app.route('/gas/reading/current')
+def gas_reading_current():
     current_reading = None
     try:
         current_reading = read_current_reading()
@@ -226,6 +239,15 @@ def gas_current():
         json.dump(data, f, ensure_ascii=False, indent=4)
 
     return json.dumps(data)
+
+@app.route('/gas/logs')
+def gas_logs():
+    # perform validity check; open last file and check delta
+    if os.path.isfile(LOG_FILE):
+        with open(LOG_FILE) as f:
+            return f.read().replace('\n', '<br>')
+            
+    return abort(404)
 
 if __name__ == '__main__':
    app.run(debug=True)
