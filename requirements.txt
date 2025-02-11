@@ -1,3 +1,5 @@
-paho-mqtt
-fastapi
-"uvicorn[standard]"
+numpy
+scikit-image
+requests
+flask
+easyocr
